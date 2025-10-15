@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -255,6 +255,20 @@
         // --- Funções Principais ---
         function formatNumberPT(num, precision = 2) {
             return (typeof num === 'number' ? num.toFixed(precision) : String(num)).replace('.', ',');
+        }
+
+        async function requestSensorAccess() {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                try {
+                    const permissionState = await DeviceMotionEvent.requestPermission();
+                    return permissionState === 'granted';
+                } catch (error) {
+                    console.error("Erro ao solicitar permissão do sensor:", error);
+                    return false;
+                }
+            }
+            // Para navegadores que não são iOS 13+, a permissão não é necessária
+            return true;
         }
 
         calibrateBtn.addEventListener('click', async () => {
@@ -538,3 +552,5 @@
     </script>
 </body>
 </html>
+
+
