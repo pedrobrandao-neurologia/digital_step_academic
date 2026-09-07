@@ -1,0 +1,17 @@
+{
+  "name": "o-passo-digital",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Análise quantitativa da marcha com sensores inerciais do smartphone (PWA)",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "serve": "http-server -p 8080 .",
+    "smoke": "node tests/smoke.js",
+    "icons": "node tests/make-icons.js"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "playwright": "^1.56.1"
+  },
+  "license": "MIT"
+}
