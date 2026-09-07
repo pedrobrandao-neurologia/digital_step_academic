@@ -1,0 +1,4 @@
+node_modules/
+tests/shot-*.png
+tests/relatorio-demo.pdf
+.DS_Store

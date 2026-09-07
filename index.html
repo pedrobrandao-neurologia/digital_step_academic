@@ -1,341 +1,430 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O Passo Digital: Análise de Marcha Clínica</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bibliotecas para exportação e gráficos -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); padding: 1.5rem; margin-bottom: 1.5rem; }
-        .btn { padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: 600; transition: all 0.2s ease-in-out; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-primary { background-color: #4f46e5; color: white; }
-        .btn-primary:hover { background-color: #4338ca; }
-        .btn-secondary { background-color: #6b7280; color: white; }
-        .btn-secondary:hover { background-color: #4b5563; }
-        .btn-danger { background-color: #dc2626; color: white; }
-        .btn-danger:hover { background-color: #b91c1c; }
-        .btn:disabled { background-color: #d1d5db; cursor: not-allowed; }
-        .progress-bar { position: absolute; bottom: 0; left: 0; height: 4px; background-color: rgba(255, 255, 255, 0.4); transition: width 0.1s linear; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>O Passo Digital</title>
+  <meta name="description" content="Análise quantitativa da marcha com os sensores inerciais do smartphone: parâmetros espaço-temporais, variabilidade, simetria e controle postural, com relatório clínico detalhado.">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F2F7">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Passo Digital">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <script src="vendor/chart.umd.js" defer></script>
+  <script src="vendor/jspdf.umd.min.js" defer></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="gait-analysis.js" defer></script>
+  <script src="app.js" defer></script>
+  <style>
+    /* ------------------------------------------------------------------
+       Design system (inspirado nas Human Interface Guidelines da Apple)
+       ------------------------------------------------------------------ */
+    :root {
+      --bg: #F2F2F7;
+      --bg-elevated: #FFFFFF;
+      --fill: #E5E5EA;
+      --fill-2: rgba(120, 120, 128, 0.16);
+      --label: #000000;
+      --label-2: rgba(60, 60, 67, 0.6);
+      --label-3: rgba(60, 60, 67, 0.3);
+      --separator: rgba(60, 60, 67, 0.29);
+      --blue: #007AFF;
+      --green: #34C759;
+      --orange: #FF9500;
+      --red: #FF3B30;
+      --gray: #8E8E93;
+      --material: rgba(249, 249, 249, 0.78);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+      --radius: 12px;
+      --radius-lg: 20px;
+      --spring: cubic-bezier(0.32, 0.72, 0, 1);
+      --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --bg-elevated: #1C1C1E;
+        --fill: #2C2C2E;
+        --fill-2: rgba(120, 120, 128, 0.24);
+        --label: #FFFFFF;
+        --label-2: rgba(235, 235, 245, 0.6);
+        --label-3: rgba(235, 235, 245, 0.3);
+        --separator: rgba(84, 84, 88, 0.65);
+        --blue: #0A84FF;
+        --green: #30D158;
+        --orange: #FF9F0A;
+        --red: #FF453A;
+        --gray: #8E8E93;
+        --material: rgba(29, 29, 31, 0.72);
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { font: 17px/1.35 var(--font); color: var(--label); background: var(--bg); -webkit-text-size-adjust: 100%; font-optical-sizing: auto; }
+    body { margin: 0; padding-bottom: calc(40px + var(--safe-bottom)); overscroll-behavior-y: none; }
+    h1, h2, h3, p { margin: 0; }
+    button { font: inherit; color: inherit; }
+    input, select { font: inherit; }
+    a { color: var(--blue); text-decoration: none; }
+    ::selection { background: rgba(0, 122, 255, 0.25); }
+
+    /* Barra de navegação translúcida */
+    .nav {
+      position: sticky; top: 0; z-index: 20;
+      padding-top: var(--safe-top);
+      background: var(--material);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid transparent;
+      transition: border-color 200ms var(--ease-out);
+    }
+    .nav.scrolled { border-bottom-color: var(--separator); }
+    .nav-inner { max-width: 760px; margin: 0 auto; height: 44px; display: flex; align-items: center; justify-content: center; position: relative; padding: 0 16px; }
+    .nav-title { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; opacity: 0; transform: translateY(6px); transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out); }
+    .nav.scrolled .nav-title { opacity: 1; transform: none; }
+    .nav-action { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--blue); font-size: 17px; padding: 8px 4px; cursor: pointer; border-radius: 8px; }
+    .nav-action:active { opacity: 0.4; }
+
+    .page { max-width: 760px; margin: 0 auto; padding: 8px 16px 0; }
+    .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -0.4px; padding: 6px 0 2px; }
+    .subtitle { color: var(--label-2); font-size: 15px; letter-spacing: -0.1px; margin-bottom: 20px; }
+
+    /* Seções e grupos (listas agrupadas) */
+    .section { margin: 26px 0 0; }
+    .section-header { font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--label-2); padding: 0 16px 7px; }
+    .section-footer { font-size: 13px; color: var(--label-2); padding: 7px 16px 0; line-height: 1.4; }
+    .group { background: var(--bg-elevated); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+    .row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 16px; position: relative; }
+    .row + .row::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--separator); }
+    .row-label { flex: 1; min-width: 0; }
+    .row-label .sub { display: block; font-size: 13px; color: var(--label-2); margin-top: 1px; }
+    .row-value { color: var(--label-2); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .row input[type="text"], .row input[type="number"], .row select {
+      appearance: none; -webkit-appearance: none; border: 0; background: transparent; text-align: right; color: var(--blue);
+      min-width: 0; width: 45%; padding: 6px 0; outline: none; font-size: 17px;
+    }
+    .row input::placeholder { color: var(--label-3); }
+    .row input:focus, .row select:focus { color: var(--label); }
+    .row select { cursor: pointer; direction: rtl; }
+
+    /* Controle segmentado */
+    .segmented { display: flex; background: var(--fill-2); border-radius: 9px; padding: 2px; position: relative; user-select: none; }
+    .segmented button {
+      flex: 1; position: relative; z-index: 1; border: 0; background: transparent; padding: 6px 4px; border-radius: 7px;
+      font-size: 13px; font-weight: 500; color: var(--label); cursor: pointer; transition: opacity 120ms; letter-spacing: -0.1px;
+    }
+    .segmented button:active { opacity: 0.6; }
+    .segmented button[aria-pressed="true"] { font-weight: 600; }
+    .segmented .thumb {
+      position: absolute; top: 2px; bottom: 2px; left: 2px; border-radius: 7px; background: var(--bg-elevated);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+      transition: transform 280ms var(--spring), width 280ms var(--spring); z-index: 0;
+    }
+    @media (prefers-color-scheme: dark) { .segmented .thumb { background: #636366; } }
+
+    /* Botões */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; padding: 12px 18px;
+      border: 0; border-radius: var(--radius); font-size: 17px; font-weight: 600; letter-spacing: -0.2px; cursor: pointer;
+      transition: transform 160ms var(--spring), opacity 160ms, background-color 160ms; -webkit-user-select: none; user-select: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; pointer-events: none; }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-secondary { background: var(--fill-2); color: var(--blue); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-plain { background: transparent; color: var(--blue); min-height: 44px; font-weight: 500; }
+    .btn .icon { width: 20px; height: 20px; }
+    .btn-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 560px) { .btn-grid { grid-template-columns: repeat(3, 1fr); } }
+    .stack { display: grid; gap: 10px; }
+
+    /* Tiles de destaque */
+    .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 560px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+    .tile { background: var(--bg-elevated); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 14px 12px; min-height: 96px; display: flex; flex-direction: column; justify-content: space-between; }
+    .tile .k { font-size: 13px; color: var(--label-2); letter-spacing: -0.1px; }
+    .tile .v { font-size: 28px; font-weight: 600; letter-spacing: -0.6px; line-height: 1.1; font-variant-numeric: tabular-nums; margin: 6px 0 4px; }
+    .tile .v small { font-size: 14px; font-weight: 500; color: var(--label-2); letter-spacing: 0; margin-left: 3px; }
+
+    /* Status */
+    .status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--label-2); white-space: nowrap; }
+    .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--gray); flex: none; }
+    .status.ok::before { background: var(--green); }
+    .status.warn::before { background: var(--orange); }
+    .status.alert::before { background: var(--red); }
+
+    /* Tabela de resultados */
+    .metric { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 16px; position: relative; align-items: center; }
+    .metric + .metric::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px; background: var(--separator); }
+    .metric .name { font-size: 16px; letter-spacing: -0.2px; }
+    .metric .ref { grid-column: 1 / -1; font-size: 12px; color: var(--label-2); line-height: 1.35; }
+    .metric .val { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; letter-spacing: -0.3px; }
+    .metric .val small { font-weight: 400; font-size: 13px; color: var(--label-2); margin-left: 3px; }
+    .metric .status { justify-self: end; }
+    .domain-title { font-size: 15px; font-weight: 600; padding: 12px 16px 4px; color: var(--label); background: var(--bg-elevated); letter-spacing: -0.2px; }
+    .domain-title + .metric::before { display: none; }
+
+    /* Gráficos */
+    .chart-card { background: var(--bg-elevated); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 12px 8px; }
+    .chart-card h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; padding: 0 4px 8px; }
+    .chart-card .hint { font-size: 12px; color: var(--label-2); padding: 0 4px 8px; }
+    .chart-wrap { position: relative; height: 220px; }
+    .charts { display: grid; gap: 12px; }
+    @media (min-width: 720px) { .charts { grid-template-columns: 1fr 1fr; } }
+
+    /* Relatório */
+    .report { background: var(--bg-elevated); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 16px; }
+    .report h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; margin: 14px 0 6px; }
+    .report h3:first-child { margin-top: 0; }
+    .report p { font-size: 15px; line-height: 1.5; color: var(--label); margin: 0 0 8px; }
+    .report .meta { font-size: 13px; color: var(--label-2); margin-bottom: 8px; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+    table.data { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    table.data th, table.data td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--separator); white-space: nowrap; }
+    table.data th:first-child, table.data td:first-child { text-align: left; }
+    table.data th { color: var(--label-2); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+    table.data tr.invalid td { color: var(--label-3); }
+    details summary { cursor: pointer; color: var(--blue); font-size: 15px; padding: 8px 0; list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::after { content: " ›"; display: inline-block; transition: transform 200ms var(--spring); }
+    details[open] summary::after { transform: rotate(90deg); }
+
+    /* Avisos */
+    .callout { display: flex; gap: 10px; align-items: flex-start; background: var(--bg-elevated); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; font-size: 14px; line-height: 1.4; }
+    .callout.warn { border-left: 3px solid var(--orange); }
+    .callout.error { border-left: 3px solid var(--red); }
+    .callout.info { border-left: 3px solid var(--blue); }
+    .callout ul { margin: 4px 0 0; padding-left: 18px; }
+    .callout li { margin: 2px 0; }
+
+    /* Instruções em passos */
+    .steps { counter-reset: s; }
+    .steps .row { align-items: flex-start; }
+    .steps .row::after { content: none; }
+    .steps .num { counter-increment: s; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none; margin-top: 1px; }
+    .steps .num::before { content: counter(s); }
+    .steps p { font-size: 15px; line-height: 1.4; }
+    .steps p strong { font-weight: 600; }
+
+    /* Folha modal de coleta */
+    .scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35); opacity: 0; pointer-events: none; visibility: hidden; transition: opacity 320ms var(--ease-out), visibility 0s linear 320ms; z-index: 30; }
+    .scrim.open { opacity: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 31; max-width: 560px; margin: 0 auto;
+      background: var(--bg-elevated); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
+      padding: 10px 20px calc(20px + var(--safe-bottom)); transform: translateY(105%); visibility: hidden; transition: transform 420ms var(--spring), visibility 0s linear 420ms; will-change: transform;
+    }
+    .sheet.open { transform: translateY(0); visibility: visible; transition-delay: 0s; }
+    .sheet .grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--fill); margin: 0 auto 14px; }
+    .sheet h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; text-align: center; }
+    .sheet .hint { text-align: center; color: var(--label-2); font-size: 15px; margin-top: 4px; min-height: 40px; }
+    .ring { position: relative; width: 180px; height: 180px; margin: 18px auto; }
+    .ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+    .ring circle { fill: none; stroke-width: 10; stroke-linecap: round; }
+    .ring .track { stroke: var(--fill-2); }
+    .ring .bar { stroke: var(--blue); stroke-dasharray: 502.65; stroke-dashoffset: 502.65; transition: stroke-dashoffset 250ms linear, stroke 300ms; }
+    .ring .bar.countdown { stroke: var(--orange); }
+    .ring .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 52px; font-weight: 700; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; line-height: 1; }
+    .ring .num small { font-size: 13px; font-weight: 500; color: var(--label-2); letter-spacing: 0; margin-top: 6px; }
+    .sheet .live { display: flex; justify-content: space-around; font-size: 13px; color: var(--label-2); margin: 0 0 16px; font-variant-numeric: tabular-nums; }
+    .sheet .live b { display: block; font-size: 17px; color: var(--label); font-weight: 600; }
+
+    /* Toast */
+    .toast { position: fixed; left: 50%; bottom: calc(24px + var(--safe-bottom)); transform: translate(-50%, 20px); background: var(--material); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--label); padding: 10px 16px; border-radius: 14px; box-shadow: var(--shadow); font-size: 15px; opacity: 0; pointer-events: none; transition: opacity 220ms var(--ease-out), transform 320ms var(--spring); z-index: 40; max-width: min(92vw, 480px); text-align: center; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    .hidden { display: none !important; }
+    .muted { color: var(--label-2); }
+    .tiny { font-size: 12px; color: var(--label-2); }
+    .install-banner { display: none; }
+    .install-banner.show { display: block; }
+    .footer { text-align: center; font-size: 12px; color: var(--label-2); margin: 34px 0 0; line-height: 1.5; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+      .sheet { transition: opacity 150ms; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .nav, .toast { background: var(--bg-elevated); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    }
+    @media (prefers-contrast: more) {
+      .group, .tile, .chart-card, .report, .callout { border: 1px solid var(--separator); }
+    }
+    @media print {
+      .nav, .btn, .sheet, .scrim, .toast, .no-print { display: none !important; }
+      body { background: #fff; color: #000; }
+      .group, .tile, .chart-card, .report { box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body>
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <span class="nav-title">O Passo Digital</span>
+      <button class="nav-action hidden" id="installBtn" type="button">Instalar</button>
+    </div>
+  </header>
 
-    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-indigo-700">O Passo Digital</h1>
-            <p class="text-lg text-gray-600 mt-2">Análise Avançada de Marcha para Uso Clínico</p>
-        </header>
+  <main class="page">
+    <h1 class="large-title">O Passo Digital</h1>
+    <p class="subtitle">Análise quantitativa da marcha com os sensores do smartphone</p>
 
-        <!-- Seção de Instruções -->
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Instruções de Uso</h2>
-            <ol class="list-decimal list-inside space-y-2 text-gray-700">
-                <li>
-                    <strong>Posicionamento (CRÍTICO):</strong> Selecione a posição do celular. Para a análise clínica completa, fixe o aparelho firmemente na região lombar (L5). Para uma análise temporal simplificada, use o bolso da calça.
-                </li>
-                <li>
-                    <strong>Calibração:</strong> Coloque o celular parado sobre uma superfície plana (ex: uma mesa), clique em <strong>"Calibrar Sensores"</strong> e conceda a permissão de acesso.
-                </li>
-                <li>
-                    <strong>Configuração:</strong> Insira um ID, sua altura em centímetros e a duração da coleta.
-                </li>
-                 <li>
-                    <strong>Coleta:</strong> Pressione <strong>"Iniciar Coleta"</strong> e caminhe em linha reta por um corredor. A coleta parará automaticamente.
-                </li>
-                <li>
-                    <strong>Análise e Exportação:</strong> Os resultados serão exibidos. O relatório em PDF conterá a metodologia adaptada à posição escolhida.
-                </li>
-            </ol>
-        </div>
-
-        <!-- Seção de Controle -->
-        <div class="card">
-            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Painel de Controle</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <div>
-                    <label for="personId" class="block text-sm font-medium text-gray-700 mb-1">ID da Pessoa Testada</label>
-                    <input type="text" id="personId" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Ex: Paciente01">
-                </div>
-                <div>
-                    <label for="height" class="block text-sm font-medium text-gray-700 mb-1">Altura da Pessoa (cm)</label>
-                    <input type="number" id="height" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Ex: 175">
-                </div>
-                 <div>
-                    <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">Duração da Coleta</label>
-                    <select id="duration" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                        <option value="20">20 segundos</option>
-                        <option value="40">40 segundos</option>
-                        <option value="60">60 segundos</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="positionSelect" class="block text-sm font-medium text-gray-700 mb-1">Posição do Celular</label>
-                    <select id="positionSelect" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                        <option value="lombar">Lombar (L5 - Análise Clínica)</option>
-                        <option value="bolso">Bolso da Calça (Simplificada)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex flex-col md:flex-row gap-4 justify-around mt-6">
-                <button id="calibrateBtn" class="btn btn-secondary">
-                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" /></svg>
-                    Calibrar Sensores
-                </button>
-                <button id="startBtn" class="btn btn-primary relative overflow-hidden" disabled>
-                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
-                    Iniciar Coleta
-                    <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
-                </button>
-                 <button id="stopBtn" class="btn btn-danger" disabled>
-                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>
-                    Parar
-                </button>
-            </div>
-            <div id="status" class="mt-4 text-center font-medium text-gray-600 h-6"></div>
-        </div>
-        
-        <!-- Seção de Gráficos -->
-        <div id="chartsCard" class="card hidden">
-            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Visualização dos Dados</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                    <h3 id="signalChartTitle" class="text-lg font-medium text-center mb-2">Sinal de Detecção</h3>
-                    <canvas id="signalChart"></canvas>
-                </div>
-                <div id="trajectoryChartContainer">
-                     <h3 class="text-lg font-medium text-center mb-2">Trajetória 3D Estimada</h3>
-                    <canvas id="trajectoryChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Seção de Resultados -->
-        <div id="resultsCard" class="card hidden">
-            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Resultados da Análise de Marcha</h2>
-            <div id="resultsContainer" class="overflow-x-auto">
-                 <table id="resultsTable" class="min-w-full divide-y divide-gray-200">
-                    <tbody id="resultsBody" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Seção de Exportação -->
-        <div id="exportCard" class="card hidden">
-             <h2 class="text-2xl font-semibold mb-4 text-indigo-600">Exportar Dados</h2>
-             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                 <button id="exportRawCsvBtn" class="btn btn-secondary">Brutos (CSV)</button>
-                 <button id="exportResultsCsvBtn" class="btn btn-primary">Resultados (CSV)</button>
-                 <button id="exportResultsJsonBtn" class="btn btn-primary">Resultados (JSON)</button>
-                 <button id="exportResultsPdfBtn" class="btn btn-primary">Relatório (PDF)</button>
-             </div>
-        </div>
+    <div class="callout warn install-banner" id="iosInstallHint">
+      <div>Para usar como aplicativo (tela cheia e offline) no iPhone/iPad: toque em <strong>Compartilhar</strong> e depois em <strong>Adicionar à Tela de Início</strong>.</div>
     </div>
 
-    <script>
-        // --- Implementações State-of-the-Art (Madgwick, Filtros, FFT) ---
-        class MadgwickAHRS { /* ... Omitido para brevidade ... */ }
-        class ButterworthBandpassFilter { /* ... Omitido para brevidade ... */ }
-        function fft(real, imag) { /* ... Omitido para brevidade ... */ }
-        
-        // --- Referências de Elementos e Estado ---
-        const [calibrateBtn, startBtn, stopBtn, heightInput, personIdInput, durationSelect, positionSelect, statusDiv, progressBar, chartsCard, resultsCard, resultsBody, exportCard, exportRawCsvBtn, exportResultsCsvBtn, exportResultsJsonBtn, exportResultsPdfBtn] = [
-            'calibrateBtn', 'startBtn', 'stopBtn', 'height', 'personId', 'duration', 'positionSelect', 'status', 'progressBar', 'chartsCard', 'resultsCard', 'resultsBody', 'exportCard', 'exportRawCsvBtn', 'exportResultsCsvBtn', 'exportResultsJsonBtn', 'exportResultsPdfBtn'
-        ].map(id => document.getElementById(id));
-        
-        let sensorData = [], calculatedResults = {}, isCollecting = false, accelBias = {x:0, y:0, z:0}, gyroBias = {x:0, y:0, z:0};
-        let dataCollectionHandler, collectionTimeout, progressInterval, signalChart, trajectoryChart;
-        const SAMPLING_FREQUENCY = 50, MIN_PEAK_HEIGHT_VT = 0.5, MIN_PEAK_HEIGHT_MAG = 1.5, MIN_STEP_DURATION = 0.3;
+    <!-- Instruções -->
+    <section class="section">
+      <div class="section-header">Protocolo de coleta</div>
+      <div class="group steps">
+        <div class="row"><span class="num"></span><p><strong>Posicione o aparelho.</strong> Fixe o smartphone firmemente na região lombar baixa (sobre L5, acima dos glúteos), em pé (retrato), com um cinto elástico ou faixa. O modo <em>bolso</em> fornece apenas parâmetros temporais.</p></div>
+        <div class="row"><span class="num"></span><p><strong>Teste os sensores</strong> uma vez para conceder a permissão de movimento e verificar a taxa de amostragem e o giroscópio.</p></div>
+        <div class="row"><span class="num"></span><p><strong>Preencha os dados</strong> (identificação, estatura, idade e sexo) para o modelo espacial e os valores de referência.</p></div>
+        <div class="row"><span class="num"></span><p><strong>Inicie a coleta</strong>, fique parado durante a contagem regressiva e caminhe em linha reta, em ritmo habitual, por um corredor plano. Curvas são detectadas e excluídas automaticamente.</p></div>
+        <div class="row"><span class="num"></span><p><strong>Revise o relatório</strong>: resultados por domínio, gráficos, interpretação e exportação em PDF, CSV e JSON.</p></div>
+      </div>
+    </section>
 
-        // --- Funções Principais ---
-        function formatNumberPT(num, precision = 2) {
-            return (typeof num === 'number' ? num.toFixed(precision) : String(num)).replace('.', ',');
-        }
+    <!-- Participante -->
+    <section class="section">
+      <div class="section-header">Participante</div>
+      <div class="group">
+        <label class="row"><span class="row-label">Identificação</span><input type="text" id="personId" placeholder="Ex.: P001" autocomplete="off" maxlength="40"></label>
+        <label class="row"><span class="row-label">Estatura <span class="sub">necessária para o modelo espacial</span></span><input type="number" id="height" inputmode="decimal" placeholder="cm" min="100" max="230" step="0.5"></label>
+        <label class="row"><span class="row-label">Comprimento da perna <span class="sub">opcional (trocânter ao solo); padrão 0,53 × estatura</span></span><input type="number" id="legLength" inputmode="decimal" placeholder="cm" min="50" max="130" step="0.5"></label>
+        <label class="row"><span class="row-label">Idade <span class="sub">para referência de velocidade</span></span><input type="number" id="age" inputmode="numeric" placeholder="anos" min="5" max="110"></label>
+        <label class="row"><span class="row-label">Sexo</span>
+          <select id="sex"><option value="">—</option><option value="F">Feminino</option><option value="M">Masculino</option></select>
+        </label>
+      </div>
+    </section>
 
-        async function requestSensorAccess() {
-            if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                try {
-                    const permissionState = await DeviceMotionEvent.requestPermission();
-                    return permissionState === 'granted';
-                } catch (error) { console.error("Erro ao solicitar permissão:", error); return false; }
-            }
-            return true;
-        }
+    <!-- Configuração -->
+    <section class="section">
+      <div class="section-header">Coleta</div>
+      <div class="group">
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="row-label">Posição do aparelho</span>
+          <div class="segmented" id="positionSeg" role="group" aria-label="Posição do aparelho">
+            <div class="thumb"></div>
+            <button type="button" data-value="lombar" aria-pressed="true">Lombar (L5)</button>
+            <button type="button" data-value="bolso" aria-pressed="false">Bolso (simplificada)</button>
+          </div>
+        </div>
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="row-label">Duração da caminhada</span>
+          <div class="segmented" id="durationSeg" role="group" aria-label="Duração">
+            <div class="thumb"></div>
+            <button type="button" data-value="20" aria-pressed="false">20 s</button>
+            <button type="button" data-value="30" aria-pressed="true">30 s</button>
+            <button type="button" data-value="60" aria-pressed="false">60 s</button>
+            <button type="button" data-value="120" aria-pressed="false">2 min</button>
+          </div>
+        </div>
+        <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="row-label">Contagem regressiva antes de iniciar</span>
+          <div class="segmented" id="delaySeg" role="group" aria-label="Atraso inicial">
+            <div class="thumb"></div>
+            <button type="button" data-value="3" aria-pressed="false">3 s</button>
+            <button type="button" data-value="5" aria-pressed="true">5 s</button>
+            <button type="button" data-value="10" aria-pressed="false">10 s</button>
+          </div>
+        </div>
+        <div class="row"><span class="row-label">Sensores <span class="sub" id="sensorInfo">não testados</span></span><span class="row-value" id="sensorState">—</span></div>
+      </div>
+      <div class="stack" style="margin-top:12px">
+        <button class="btn btn-secondary" id="testBtn" type="button">
+          <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 2a1 1 0 011 1v1.06A6.002 6.002 0 0115.94 9H17a1 1 0 110 2h-1.06A6.002 6.002 0 0111 15.94V17a1 1 0 11-2 0v-1.06A6.002 6.002 0 014.06 11H3a1 1 0 110-2h1.06A6.002 6.002 0 019 4.06V3a1 1 0 011-1zm0 4a4 4 0 100 8 4 4 0 000-8zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+          Testar sensores
+        </button>
+        <button class="btn btn-primary" id="startBtn" type="button" disabled>
+          <svg class="icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6.3 3.6A1 1 0 005 4.5v11a1 1 0 001.5.87l9.5-5.5a1 1 0 000-1.74l-9.5-5.5a1 1 0 00-.2-.03z"/></svg>
+          Iniciar coleta
+        </button>
+        <div class="btn-grid">
+          <button class="btn btn-plain" id="demoBtn" type="button">Demonstração com dados simulados</button>
+          <button class="btn btn-plain" id="importBtn" type="button">Importar registro (CSV/JSON)</button>
+        </div>
+        <input type="file" id="importFile" accept=".csv,.json,text/csv,application/json" class="hidden">
+      </div>
+      <p class="section-footer">Todo o processamento ocorre no aparelho; nenhum dado é enviado a servidores. Idade e sexo são usados apenas para comparação com valores de referência.</p>
+    </section>
 
-        calibrateBtn.addEventListener('click', async () => {
-            statusDiv.textContent = 'Solicitando permissão...';
-            const permissionGranted = await requestSensorAccess();
-            if (!permissionGranted) { statusDiv.textContent = 'Permissão negada. Ative nas configurações.'; return; }
-            statusDiv.textContent = 'Calibrando... Mantenha o dispositivo PARADO EM UMA SUPERFÍCIE PLANA por 3s.';
-            
-            calibrateBtn.disabled = true;
-            const calibrationData = { accel: [], gyro: [] };
-            const calibrationHandler = (event) => {
-                calibrationData.accel.push(event.accelerationIncludingGravity);
-                calibrationData.gyro.push(event.rotationRate);
-            };
-            window.addEventListener('devicemotion', calibrationHandler, true);
+    <!-- Avisos -->
+    <section class="section hidden" id="warningsSection">
+      <div class="callout warn" id="warningsBox"></div>
+    </section>
 
-            setTimeout(() => {
-                window.removeEventListener('devicemotion', calibrationHandler, true);
-                if (calibrationData.accel.length < 10) {
-                    statusDiv.textContent = 'Erro de calibração. Tente novamente.';
-                    calibrateBtn.disabled = false; return;
-                }
-                const avg = (data, key) => data.reduce((sum, v) => sum + v[key], 0) / data.length;
-                accelBias = { x: avg(calibrationData.accel, 'x'), y: avg(calibrationData.accel, 'y'), z: avg(calibrationData.accel, 'z') - 9.81 };
-                gyroBias = { x: avg(calibrationData.gyro, 'beta'), y: avg(calibrationData.gyro, 'gamma'), z: avg(calibrationData.gyro, 'alpha') };
-                
-                statusDiv.textContent = 'Calibração concluída!';
-                calibrateBtn.disabled = false; startBtn.disabled = false;
-                initCharts();
-            }, 3000);
-        });
-        
-        startBtn.addEventListener('click', () => { /* ... Omitido para brevidade, sem alterações ... */ });
-        stopBtn.addEventListener('click', () => { /* ... Omitido para brevidade, sem alterações ... */ });
+    <!-- Resultados -->
+    <section class="section hidden" id="resultsSection">
+      <div class="section-header" id="resultsHeader">Resultados</div>
+      <div class="tiles" id="tiles"></div>
+      <div class="group" id="metricsList" style="margin-top:12px"></div>
+      <p class="section-footer">Status: <span class="status ok">dentro da referência</span> · <span class="status warn">limítrofe</span> · <span class="status alert">fora da referência</span> · <span class="status">sem norma / informativo</span></p>
+    </section>
 
-        function analyzeGaitData() {
-            if (sensorData.length < 100) { statusDiv.textContent = 'Dados insuficientes.'; return; }
-            
-            const position = positionSelect.value;
-            
-            if (position === 'lombar') {
-                analyzeLombar();
-            } else {
-                analyzeBolso();
-            }
-        }
+    <!-- Gráficos -->
+    <section class="section hidden" id="chartsSection">
+      <div class="section-header">Sinais e eventos</div>
+      <div class="charts">
+        <div class="chart-card"><h3 id="chartSignalTitle">Aceleração vertical do tronco</h3><div class="hint">Linha: aceleração filtrada (m/s²). Pontos: contatos iniciais detectados. Faixas cinza: trechos excluídos.</div><div class="chart-wrap"><canvas id="chartSignal" role="img" aria-label="Aceleração vertical com contatos iniciais"></canvas></div></div>
+        <div class="chart-card" id="chartPosCard"><h3>Deslocamento vertical estimado</h3><div class="hint">Dupla integração com passa-altas 0,1 Hz (Zijlstra &amp; Hof, 2003). Amplitude por passo alimenta o modelo do pêndulo invertido.</div><div class="chart-wrap"><canvas id="chartPos" role="img" aria-label="Deslocamento vertical do tronco"></canvas></div></div>
+        <div class="chart-card"><h3>Tempo de cada passada</h3><div class="hint">Série passada a passada (s). A dispersão em torno da média expressa a variabilidade do ritmo.</div><div class="chart-wrap"><canvas id="chartStride" role="img" aria-label="Tempo de cada passada"></canvas></div></div>
+        <div class="chart-card"><h3>Autocorrelação (vertical)</h3><div class="hint">Picos no lag de 1 passo (Ad1) e 1 passada (Ad2) medem a regularidade (Moe-Nilssen &amp; Helbostad, 2004).</div><div class="chart-wrap"><canvas id="chartAC" role="img" aria-label="Autocorrelação do sinal vertical"></canvas></div></div>
+      </div>
+    </section>
 
-        function analyzeBolso() {
-            // Análise simplificada baseada na magnitude
-            const processedData = sensorData.map(e => ({
-                t: (e.timeStamp - sensorData[0].timeStamp) / 1000,
-                acc: e.accelerationIncludingGravity
-            }));
+    <!-- Relatório -->
+    <section class="section hidden" id="reportSection">
+      <div class="section-header">Relatório do período de marcha avaliado</div>
+      <div class="report" id="reportBox"></div>
+      <div class="report" style="margin-top:12px">
+        <details><summary>Tabela passada a passada</summary><div class="table-scroll" id="strideTableWrap"></div></details>
+      </div>
+    </section>
 
-            const magnitudeSignal = processedData.map(d => Math.sqrt(d.acc.x**2 + d.acc.y**2 + d.acc.z**2));
-            const meanMag = magnitudeSignal.reduce((a, b) => a + b, 0) / magnitudeSignal.length;
-            const detrendedMag = magnitudeSignal.map(v => v - meanMag);
-            
-            const bandpassFilter = new ButterworthBandpassFilter();
-            const filteredSignal = detrendedMag.map(v => bandpassFilter.filter(v));
+    <!-- Exportação -->
+    <section class="section hidden" id="exportSection">
+      <div class="section-header">Exportar</div>
+      <div class="stack">
+        <button class="btn btn-primary" id="pdfBtn" type="button">Relatório em PDF</button>
+        <div class="btn-grid">
+          <button class="btn btn-secondary" id="csvResultsBtn" type="button">Resultados (CSV)</button>
+          <button class="btn btn-secondary" id="csvStridesBtn" type="button">Passadas (CSV)</button>
+          <button class="btn btn-secondary" id="csvRawBtn" type="button">Sinais brutos (CSV)</button>
+          <button class="btn btn-secondary" id="jsonBtn" type="button">Sessão completa (JSON)</button>
+          <button class="btn btn-secondary" id="shareBtn" type="button">Compartilhar PDF</button>
+          <button class="btn btn-secondary" id="newBtn" type="button">Nova coleta</button>
+        </div>
+      </div>
+      <p class="section-footer">CSV com separador vírgula e decimal ponto (compatível com <code>read.csv()</code> no R). O JSON contém metadados, métricas, passos, passadas e os sinais processados para reanálise.</p>
+    </section>
 
-            const hsIndices = findPeaks(filteredSignal, MIN_PEAK_HEIGHT_MAG, Math.round(MIN_STEP_DURATION * SAMPLING_FREQUENCY));
-            if (hsIndices.length < 4) { statusDiv.textContent = 'Passadas insuficientes detectadas (Análise de Bolso).'; return; }
+    <p class="footer">O Passo Digital v2 · Instrumento complementar de avaliação; não substitui a avaliação clínica.<br><span id="versionInfo"></span></p>
+  </main>
 
-            const strideTimes = [];
-            for (let i = 0; i < hsIndices.length - 2; i += 2) {
-                strideTimes.push(processedData[hsIndices[i+2]].t - processedData[hsIndices[i]].t);
-            }
-            const avgStrideTime = strideTimes.reduce((a, b) => a + b, 0) / strideTimes.length;
-            const cvStrideTime = 100 * (Math.sqrt(strideTimes.reduce((sum, val) => sum + (val - avgStrideTime)**2, 0) / (strideTimes.length - 1))) / avgStrideTime;
-            const avgCadence = 120 / avgStrideTime;
+  <!-- Folha de coleta -->
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="grabber"></div>
+    <h2 id="sheetTitle">Preparar</h2>
+    <p class="hint" id="sheetHint">Fique parado, em pé.</p>
+    <div class="ring">
+      <svg viewBox="0 0 180 180"><circle class="track" cx="90" cy="90" r="80"></circle><circle class="bar" id="ringBar" cx="90" cy="90" r="80"></circle></svg>
+      <div class="num"><span id="ringNum">5</span><small id="ringLabel">segundos</small></div>
+    </div>
+    <div class="live"><div>Amostras<b id="liveSamples">0</b></div><div>Taxa<b id="liveRate">— Hz</b></div><div>Passos aprox.<b id="liveSteps">0</b></div></div>
+    <button class="btn btn-danger" id="stopBtn" type="button">Parar e analisar</button>
+    <button class="btn btn-plain" id="cancelBtn" type="button" style="margin-top:6px">Cancelar</button>
+  </div>
 
-            calculatedResults = {
-                "Análise (Posição: Bolso)": { "Nota": { value: "Análise simplificada devido à posição.", typical: "Métricas espaciais e de qualidade requerem posição lombar." } },
-                "Temporais": { "Cadência (passos/min)": { value: avgCadence, typical: "110 - 120" }, "Tempo do Ciclo (s)": { value: avgStrideTime, typical: "1,0 - 1,2" }, },
-                "Variabilidade": { "CV do Tempo do Ciclo (%)": { value: cvStrideTime, typical: "< 3%" } }
-            };
-
-            displayResults(calculatedResults);
-            updateCharts(filteredSignal, hsIndices, null, processedData.map(d => d.t));
-            statusDiv.textContent = 'Análise (simplificada) concluída.';
-        }
-
-        function analyzeLombar() {
-            // Análise clínica completa
-            const madgwick = new MadgwickAHRS(SAMPLING_FREQUENCY, 0.1);
-            const bandpassFilter = new ButterworthBandpassFilter();
-            const processedData = [];
-            let lastTimestamp = sensorData[0].timeStamp;
-
-            for (let i = 0; i < sensorData.length; i++) {
-                // ... Lógica de processamento com Madgwick (igual à versão anterior) ...
-                // Omitido para brevidade
-            }
-             // ... Lógica de cálculo de todos os parâmetros (igual à versão anterior) ...
-            // Omitido para brevidade
-            
-            // Exemplo de como ficaria o objeto final
-             calculatedResults = { /* ... objeto completo com todos os parâmetros ... */ };
-
-            displayResults(calculatedResults);
-            updateCharts(verticalSignal, hsIndices, positionData, processedData.map(d => d.t));
-            statusDiv.textContent = 'Análise concluída.';
-        }
-        
-        function autocorrelate(data) { /* ... Omitido para brevidade ... */ }
-        function findPeaks(data, minHeight, minDistance) { /* ... Omitido para brevidade ... */ }
-        function calculateTrajectory(data, stepIndices) { /* ... Omitido para brevidade ... */ return []; }
-        
-        function displayResults(results) {
-             // ... Lógica de display (igual à versão anterior) ...
-        }
-        
-        function updateCharts(signalData, hsIndices, positionData, timestamps) {
-            const position = positionSelect.value;
-            document.getElementById('signalChartTitle').textContent = position === 'lombar' ? 'Aceleração Vertical Global' : 'Magnitude da Aceleração (Filtrada)';
-            
-            // Lógica para mostrar/esconder gráfico de trajetória
-            const trajectoryContainer = document.getElementById('trajectoryChartContainer');
-            if (positionData && position === 'lombar') {
-                trajectoryContainer.style.display = 'block';
-                trajectoryChart.data.labels = timestamps;
-                trajectoryChart.data.datasets[0].data = positionData.map(p => p.x);
-                trajectoryChart.data.datasets[1].data = positionData.map(p => p.y);
-                trajectoryChart.data.datasets[2].data = positionData.map(p => p.z);
-                trajectoryChart.update('none');
-            } else {
-                trajectoryContainer.style.display = 'none';
-            }
-            
-            // Lógica para o gráfico de sinal (igual à anterior)
-             // ... Omitido para brevidade ...
-        }
-        
-        function initCharts() { /* ... Omitido para brevidade ... */ }
-
-        // --- LÓGICA DE EXPORTAÇÃO ---
-        function getFilename(prefix) { /* ... Omitido para brevidade ... */ }
-        
-        exportResultsPdfBtn.addEventListener('click', () => {
-            const doc = new jsPDF(); let currentY = 22;
-            const position = positionSelect.value;
-            // ... Lógica do cabeçalho do PDF ...
-            
-            if (position === 'bolso') {
-                doc.setFontSize(10).setTextColor(220, 53, 69); // Cor vermelha
-                doc.text("Atenção: Análise realizada com o celular no bolso. Os resultados são limitados a parâmetros temporais.", 14, currentY);
-                currentY += 10;
-                doc.setTextColor(0);
-            }
-            // ... Lógica das tabelas (igual à anterior) ...
-
-            doc.addPage(); currentY = 20;
-            doc.setFontSize(12).setFont(undefined, 'bold').text("Metodologia e Limitações", 14, currentY); currentY += 6;
-            
-            const addSection = (title, content) => { /* ... Omitido para brevidade ... */ };
-
-            if (position === 'lombar') {
-                addSection("Coleta e Orientação (Lombar)", "Dados do acelerômetro e giroscópio são coletados a ~50-100Hz. Um filtro de Madgwick estima a orientação do dispositivo, permitindo a rotação do vetor de aceleração para um quadro de referência global e o isolamento da aceleração vertical do tronco (VT).");
-                addSection("Filtragem e Detecção de Eventos (Lombar)", "O sinal VT é filtrado com um filtro Butterworth band-pass (0.5-3.0 Hz). As passadas (Initial Contact - IC) são detectadas como picos positivos proeminentes neste sinal.");
-                addSection("Fórmulas Principais (Lombar)", "Comprimento do Passo (Pêndulo Invertido): S ≈ 2 * sqrt(2*h*Δz - Δz²), onde h é a altura do centro de massa e Δz é o deslocamento vertical do tronco por passo. Harmonic Ratio (HR) = Σ Pares / Σ Ímpares das harmônicas do espectro de potência.");
-            } else { // 'bolso'
-                addSection("Coleta e Análise (Bolso)", "A análise é baseada na magnitude do vetor de aceleração (sqrt(ax²+ay²+az²)). O sinal de magnitude é filtrado e picos proeminentes são identificados como passadas. Esta abordagem é robusta para variações de orientação, mas limita a análise a parâmetros temporais.");
-                addSection("Limitações (Bolso)", "Com o celular no bolso, a orientação instável impede o uso de algoritmos avançados. Métricas espaciais (comprimento do passo, velocidade) e de qualidade (Jerk, HR), que dependem de um quadro de referência estável, não podem ser calculadas de forma confiável. Para uma análise clínica completa, a posição lombar (L5) é estritamente recomendada.");
-            }
-            addSection("Referências Chave", "Del Din S. et al, IEEE JBHI 2016; Zijlstra & Hof, Gait Posture 2003; McCamley J. et al, Gait Posture 2012.");
-            
-            doc.save(getFilename('relatorio_marcha_clinico') + '.pdf');
-        });
-        
-    </script>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
